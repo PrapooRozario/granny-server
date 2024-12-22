@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
   res.send("HELLO WORLD!");
 });
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -40,7 +40,12 @@ async function run() {
         .find({ foodName: { $regex: search, $options: "i" } })
         .toArray();
       res.send(result);
+    });
 
+    app.get("/foods/details/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await foodsCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
     });
 
     app.get("/testimonials", async (req, res) => {
