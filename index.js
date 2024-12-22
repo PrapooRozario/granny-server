@@ -35,8 +35,12 @@ async function run() {
     );
 
     app.get("/foods", async (req, res) => {
-      const result = await foodsCollection.find().toArray();
+      const search = req.query.search || "";
+      const result = await foodsCollection
+        .find({ foodName: { $regex: search, $options: "i" } })
+        .toArray();
       res.send(result);
+
     });
 
     app.get("/testimonials", async (req, res) => {
