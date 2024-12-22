@@ -29,6 +29,9 @@ async function run() {
   const testimonialsCollection = client
     .db("GrannyDB")
     .collection("Customer Testimonials");
+  const purchasesCollection = client
+    .db("GrannyDB")
+    .collection("Food Purchases");
   try {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
@@ -45,6 +48,24 @@ async function run() {
     app.get("/foods/details/:id", async (req, res) => {
       const { id } = req.params;
       const result = await foodsCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
+    app.post("/foods/purchases", async (req, res) => {
+      const data = req.body;
+      const { job_id, quantity } = req.query || "";
+
+      const result = await purchasesCollection.insertOne(data);
+
+      const updatePurchase = await foodsCollection.updateOne(
+        { _id: new ObjectId(job_id) },
+        { $inc: { purchaseCount: parseInt(quantity) } }
+      );
+
+      const updateQuantity = await foodsCollection.updateOne(
+        { _id: new ObjectId(job_id) },
+        { $inc: { quantity: -parseInt(quantity) } }
+      );
       res.send(result);
     });
 
