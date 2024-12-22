@@ -4,7 +4,12 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 3000;
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -20,10 +25,24 @@ const client = new MongoClient(uri, {
   },
 });
 async function run() {
+  const foodsCollection = client.db("GrannyDB").collection("Foods");
+  const testimonialsCollection = client
+    .db("GrannyDB")
+    .collection("Customer Testimonials");
   try {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+    app.get("/foods", async (req, res) => {
+      const result = await foodsCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/testimonials", async (req, res) => {
+      const result = await testimonialsCollection.find().toArray();
+      res.send(result);
+    });
   } finally {
   }
 }
