@@ -104,6 +104,27 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/foods/orders/:email", async (req, res) => {
+      const { email } = req.params;
+      const foodDetails = [];
+      const result = await purchasesCollection
+        .find({ buyer_email: email })
+        .toArray();
+
+      for (const order of result) {
+        const food = await foodsCollection.findOne({
+          _id: new ObjectId(order?.food_id),
+        });
+
+        (order.added_by = food?.added_by),
+          (order.foodName = food?.foodName),
+          (order.foodImage = food?.foodImage),
+          (order.description = food?.description),
+          (order.price = food?.price)
+      }
+      res.send(result);
+    });
+
     app.get("/testimonials", async (req, res) => {
       const result = await testimonialsCollection.find().toArray();
       res.send(result);
