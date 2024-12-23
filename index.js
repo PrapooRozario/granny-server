@@ -57,6 +57,14 @@ async function run() {
       res.send(result);
     });
 
+    app.get(`/foods/add/:email`, async (req, res) => {
+      const { email } = req.params;
+      const result = await foodsCollection
+        .find({ 'added_by.email': email })
+        .toArray();
+      res.send(result);
+    });
+
     app.post("/foods/purchases", async (req, res) => {
       const data = req.body;
       const { job_id, quantity } = req.query || "";
