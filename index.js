@@ -104,11 +104,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/foods/count/:email", async (req, res) => {
+      const { email } = req.params;
+      const count = await purchasesCollection
+        .find({ buyer_email: email })
+        .estimatedDocumentCount();
+      res.send({ count });
+    });
+
     app.get("/foods/orders/:email", async (req, res) => {
       const { email } = req.params;
-      const foodDetails = [];
+      const size = parseInt(req.query.size) || 6;
+      const page = parseInt(req.query.page) || 0;
       const result = await purchasesCollection
         .find({ buyer_email: email })
+        .skip(page * size)
+        .limit(size)
         .toArray();
 
       for (const order of result) {
@@ -120,7 +131,7 @@ async function run() {
           (order.foodName = food?.foodName),
           (order.foodImage = food?.foodImage),
           (order.description = food?.description),
-          (order.price = food?.price)
+          (order.price = food?.price);
       }
       res.send(result);
     });
