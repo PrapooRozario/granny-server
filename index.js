@@ -8,7 +8,11 @@ const cookieParser = require("cookie-parser");
 const port = process.env.PORT || 3000;
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://granny-a8a46.web.app",
+      "https://granny-a8a46.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
