@@ -1,8 +1,10 @@
 require("dotenv").config();
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qgpkx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const port = process.env.PORT || 3000;
 app.use(
   cors({
@@ -15,8 +17,23 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("HELLO WORLD!");
 });
+app.use(cookieParser());
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(404).send({ massage: "Token not found" });
+  }
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ massage: "Unauthorized access" });
+    }
+    req.user = decoded;
+  });
+  next();
+};
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qgpkx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -36,6 +53,27 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1d" });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
+    app.get("/logout", async (req, res) => {
+      res
+        .clearCookie("token", {
+          maxAge: 0,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
 
     app.get("/foods", async (req, res) => {
       const search = req.query.search || "";
@@ -78,8 +116,11 @@ async function run() {
       res.send(result);
     });
 
-    app.get(`/foods/add/:email`, async (req, res) => {
+    app.get(`/foods/add/:email`, verifyToken, async (req, res) => {
       const { email } = req.params;
+      if (req.user?.email !== email) {
+        return res.status(403).send({ massage: "Forbidden access" });
+      }
       const result = await foodsCollection
         .find({ "added_by.email": email })
         .toArray();
@@ -104,18 +145,33 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/foods/count/:email", async (req, res) => {
+    app.delete("/purchase/delete/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await purchasesCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+
+    app.get("/foods/count/:email", verifyToken, async (req, res) => {
       const { email } = req.params;
-      const count = await purchasesCollection
-        .find({ buyer_email: email })
-        .estimatedDocumentCount();
+      if (req.user?.email !== email) {
+        return res.status(403).send({ massage: "Forbidden access" });
+      }
+      const count = await purchasesCollection.countDocuments({
+        buyer_email: email,
+      });
       res.send({ count });
     });
 
-    app.get("/foods/orders/:email", async (req, res) => {
+    app.get("/foods/orders/:email", verifyToken, async (req, res) => {
       const { email } = req.params;
-      const size = parseInt(req.query.size) || 6;
-      const page = parseInt(req.query.page) || 0;
+      if (req.user?.email !== email) {
+        return res.status(403).send({ massage: "Forbidden access" });
+      }
+      const size = Math.max(parseInt(req.query.size) || 6, 1);
+      const page = Math.max(parseInt(req.query.page) || 0, 0);
+
       const result = await purchasesCollection
         .find({ buyer_email: email })
         .skip(page * size)
