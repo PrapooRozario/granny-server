@@ -51,6 +51,27 @@ async function run() {
       res.send(result);
     });
 
+    app.patch("/foods/update/:id", async (req, res) => {
+      const { id } = req.params;
+      const food = req.body;
+      const updatedFood = {
+        $set: {
+          foodName: food?.foodName,
+          foodImage: food?.foodImage,
+          foodCategory: food?.foodCategory,
+          price: food?.price,
+          quantity: food?.quantity,
+          foodOrigin: food?.foodOrigin,
+          description: food?.description,
+        },
+      };
+      const result = await foodsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        updatedFood
+      );
+      res.send(result);
+    });
+
     app.get("/foods/details/:id", async (req, res) => {
       const { id } = req.params;
       const result = await foodsCollection.findOne({ _id: new ObjectId(id) });
@@ -60,7 +81,7 @@ async function run() {
     app.get(`/foods/add/:email`, async (req, res) => {
       const { email } = req.params;
       const result = await foodsCollection
-        .find({ 'added_by.email': email })
+        .find({ "added_by.email": email })
         .toArray();
       res.send(result);
     });
