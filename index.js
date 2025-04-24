@@ -37,7 +37,7 @@ const verifyToken = (req, res, next) => {
   next();
 };
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qgpkx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `${process.env.MONGO_URI}`;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
